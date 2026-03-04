@@ -24,37 +24,42 @@ blocks = res.json()["results"]
 
 message = "📋 오늘의 팀 회고\n\n"
 
-current_person = None
-
 for block in blocks:
 
-    # 이름 (heading)
-    if block["type"].startswith("heading"):
+    # Callout 처리 (사람별 회고)
+    if block["type"] == "callout":
 
-        text = block[block["type"]]["rich_text"]
-        if text:
-            current_person = text[0]["plain_text"]
-            message += f"\n🙂 {current_person}\n"
+        callout = block["callout"]["rich_text"]
 
-    # 문단
-    if block["type"] == "paragraph":
+        if callout:
+            name = callout[0]["plain_text"]
+            message += f"\n🙂 {name}\n"
 
-        text = block["paragraph"]["rich_text"]
+        # callout 내부 블록 가져오기
+        child_url = f"https://api.notion.com/v1/blocks/{block['id']}/children"
+        child_res = requests.get(child_url, headers=headers)
+        children = child_res.json()["results"]
 
-        if text:
-            content = text[0]["plain_text"]
+        for child in children:
 
-            if "Keep" in content:
-                message += "K\n"
+            if child["type"] == "paragraph":
 
-            elif "Problem" in content:
-                message += "P\n"
+                text = child["paragraph"]["rich_text"]
 
-            elif "Try" in content:
-                message += "T\n"
+                if text:
+                    content = text[0]["plain_text"]
 
-            else:
-                message += f"- {content}\n"
+                    if "Keep" in content:
+                        message += "\nK\n"
+
+                    elif "Problem" in content:
+                        message += "\nP\n"
+
+                    elif "Try" in content:
+                        message += "\nT\n"
+
+                    else:
+                        message += f"- {content}\n"
 
 # Mattermost 전송
 requests.post(WEBHOOK_URL, json={"text": message})
