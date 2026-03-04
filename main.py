@@ -91,13 +91,13 @@ for block in blocks:
                             content = "".join([t["plain_text"] for t in text])
 
                             if "KEEP" in content.upper():
-                                message += "\n**Keep**\n"
+                                message += "\n##### Keep\n"
 
                             elif "PROBLEM" in content.upper():
-                                message += "\n**Problem**\n"
+                                message += "\n##### Problem\n"
 
                             elif "TRY" in content.upper():
-                                message += "\n**Try**\n"
+                                message += "\n##### Try\n"
 
                         # 실제 내용
                         elif child["type"] == "bulleted_list_item":
@@ -111,18 +111,14 @@ for block in blocks:
                     message += "\n\n---\n\n"
 
 
-# 마지막 구분선 제거
-if message.endswith("\n\n---\n\n"):
-    message = message[:-6]
-
 
 # 회고 작성 현황
 written_count = len(written_members)
 total_count = len(TEAM_MEMBERS)
 
-message += f"\n\n## 📊 회고 작성 현황\n"
-message += f"- 작성: {written_count}명\n"
-message += f"- 미작성: {total_count - written_count}명\n"
+message += f"\n\n### 📊 회고 작성 현황\n"
+message += f"- **작성: {written_count}명**\n"
+message += f"- **미작성: {total_count - written_count}명**\n"
 
 
 # 회고 미작성 체크
