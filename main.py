@@ -50,7 +50,7 @@ page_id = page["id"]
 
 blocks = get_children(page_id)
 
-message = "📋 오늘의 팀 회고\n\n"
+message = "## 📋 오늘의 팀 회고\n\n"
 
 written_members = []
 
@@ -74,7 +74,7 @@ for block in blocks:
                     if callout:
                         name = callout[0]["plain_text"]
                         written_members.append(name)
-                        message += f"\n🙂 {name}\n"
+                        message += f"\n### 🙂 {name}\n"
 
                     children = get_children(item["id"])
 
@@ -88,16 +88,16 @@ for block in blocks:
                             if not text:
                                 continue
 
-                            content = text[0]["plain_text"]
+                            content = "".join([t["plain_text"] for t in text])
 
                             if "KEEP" in content.upper():
-                                message += "\nK\n"
+                                message += "\n**Keep**\n"
 
                             elif "PROBLEM" in content.upper():
-                                message += "\nP\n"
+                                message += "\n**Problem**\n"
 
                             elif "TRY" in content.upper():
-                                message += "\nT\n"
+                                message += "\n**Try**\n"
 
                         # 실제 내용 (bullet)
                         elif child["type"] == "bulleted_list_item":
@@ -105,7 +105,7 @@ for block in blocks:
                             text = child["bulleted_list_item"]["rich_text"]
 
                             if text:
-                                content = text[0]["plain_text"]
+                                content = "".join([t["plain_text"] for t in text])
                                 message += f"- {content}\n"
 
 
