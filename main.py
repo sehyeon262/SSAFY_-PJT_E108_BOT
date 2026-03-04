@@ -19,10 +19,12 @@ TEAM_MEMBERS = [
     "김세현"
 ]
 
+
 def get_children(block_id):
     url = f"https://api.notion.com/v1/blocks/{block_id}/children"
     res = requests.get(url, headers=headers)
     return res.json()["results"]
+
 
 # 체크된 회고 조회
 query_url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
@@ -52,6 +54,7 @@ message = "📋 오늘의 팀 회고\n\n"
 
 written_members = []
 
+
 for block in blocks:
 
     if block["type"] == "column_list":
@@ -77,6 +80,7 @@ for block in blocks:
 
                     for child in children:
 
+                        # KEEP / PROBLEM / TRY 제목
                         if child["type"] == "paragraph":
 
                             text = child["paragraph"]["rich_text"]
@@ -87,16 +91,23 @@ for block in blocks:
                             content = text[0]["plain_text"]
 
                             if "KEEP" in content.upper():
-                                message += "K\n"
+                                message += "\nK\n"
 
                             elif "PROBLEM" in content.upper():
-                                message += "P\n"
+                                message += "\nP\n"
 
                             elif "TRY" in content.upper():
-                                message += "T\n"
+                                message += "\nT\n"
 
-                            else:
+                        # 실제 내용 (bullet)
+                        elif child["type"] == "bulleted_list_item":
+
+                            text = child["bulleted_list_item"]["rich_text"]
+
+                            if text:
+                                content = text[0]["plain_text"]
                                 message += f"- {content}\n"
+
 
 # 회고 미작성 체크
 not_written = [m for m in TEAM_MEMBERS if m not in written_members]
@@ -106,8 +117,10 @@ if not_written:
     for m in not_written:
         message += f"- {m}\n"
 
+
 # Mattermost 전송
 requests.post(WEBHOOK_URL, json={"text": message})
+
 
 # 알림 체크 해제
 update_url = f"https://api.notion.com/v1/pages/{page_id}"
