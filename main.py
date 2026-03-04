@@ -10,56 +10,116 @@ headers = {
     "Notion-Version": "2022-06-28"
 }
 
-# Database 조회
+TEAM_MEMBERS = [
+    "하정호",
+    "박서린",
+    "임건빈",
+    "황인후",
+    "심다인",
+    "김세현"
+]
+
+def get_children(block_id):
+    url = f"https://api.notion.com/v1/blocks/{block_id}/children"
+    res = requests.get(url, headers=headers)
+    return res.json()["results"]
+
+# 체크된 회고 조회
 query_url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
-res = requests.post(query_url, headers=headers)
+
+query_data = {
+    "filter": {
+        "property": "Mattermost 알림",
+        "checkbox": {
+            "equals": True
+        }
+    }
+}
+
+res = requests.post(query_url, headers=headers, json=query_data)
 data = res.json()
 
-page_id = data["results"][0]["id"]
+if not data["results"]:
+    print("보낼 회고 없음")
+    exit()
 
-# 페이지 블록 가져오기
-block_url = f"https://api.notion.com/v1/blocks/{page_id}/children"
-res = requests.get(block_url, headers=headers)
-blocks = res.json()["results"]
+page = data["results"][0]
+page_id = page["id"]
+
+blocks = get_children(page_id)
 
 message = "📋 오늘의 팀 회고\n\n"
 
+written_members = []
+
 for block in blocks:
 
-    # Callout 처리 (사람별 회고)
-    if block["type"] == "callout":
+    if block["type"] == "column_list":
 
-        callout = block["callout"]["rich_text"]
+        columns = get_children(block["id"])
 
-        if callout:
-            name = callout[0]["plain_text"]
-            message += f"\n🙂 {name}\n"
+        for column in columns:
 
-        # callout 내부 블록 가져오기
-        child_url = f"https://api.notion.com/v1/blocks/{block['id']}/children"
-        child_res = requests.get(child_url, headers=headers)
-        children = child_res.json()["results"]
+            column_blocks = get_children(column["id"])
 
-        for child in children:
+            for item in column_blocks:
 
-            if child["type"] == "paragraph":
+                if item["type"] == "callout":
 
-                text = child["paragraph"]["rich_text"]
+                    callout = item["callout"]["rich_text"]
 
-                if text:
-                    content = text[0]["plain_text"]
+                    if callout:
+                        name = callout[0]["plain_text"]
+                        written_members.append(name)
+                        message += f"\n🙂 {name}\n"
 
-                    if "Keep" in content:
-                        message += "\nK\n"
+                    children = get_children(item["id"])
 
-                    elif "Problem" in content:
-                        message += "\nP\n"
+                    for child in children:
 
-                    elif "Try" in content:
-                        message += "\nT\n"
+                        if child["type"] == "paragraph":
 
-                    else:
-                        message += f"- {content}\n"
+                            text = child["paragraph"]["rich_text"]
+
+                            if not text:
+                                continue
+
+                            content = text[0]["plain_text"]
+
+                            if "KEEP" in content.upper():
+                                message += "K\n"
+
+                            elif "PROBLEM" in content.upper():
+                                message += "P\n"
+
+                            elif "TRY" in content.upper():
+                                message += "T\n"
+
+                            else:
+                                message += f"- {content}\n"
+
+# 회고 미작성 체크
+not_written = [m for m in TEAM_MEMBERS if m not in written_members]
+
+if not_written:
+    message += "\n\n⚠ 회고 미작성\n"
+    for m in not_written:
+        message += f"- {m}\n"
 
 # Mattermost 전송
 requests.post(WEBHOOK_URL, json={"text": message})
+
+# 알림 체크 해제
+update_url = f"https://api.notion.com/v1/pages/{page_id}"
+
+update_data = {
+    "properties": {
+        "Mattermost 알림": {
+            "checkbox": False
+        }
+    }
+}
+
+requests.patch(update_url, headers=headers, json=update_data)
+
+print("전송 완료")
