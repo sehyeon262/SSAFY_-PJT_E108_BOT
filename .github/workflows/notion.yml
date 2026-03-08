@@ -1,10 +1,11 @@
 name: Notion Retro
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "* * * * *"
-  workflow_dispatch:
-
+  push:
+  
 jobs:
   run:
     runs-on: ubuntu-latest
