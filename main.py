@@ -45,106 +45,112 @@ if not data["results"]:
     print("보낼 회고 없음")
     exit()
 
-page = data["results"][0]
-page_id = page["id"]
 
-blocks = get_children(page_id)
+for page in data["results"]:
 
-message = "## 📋 오늘의 팀 회고\n\n"
+    page_id = page["id"]
 
-written_members = []
+    blocks = get_children(page_id)
 
+    message = "## 📋 오늘의 팀 회고\n\n"
 
-for block in blocks:
+    written_members = []
 
-    if block["type"] == "column_list":
+    for block in blocks:
 
-        columns = get_children(block["id"])
+        if block["type"] == "column_list":
 
-        for column in columns:
+            columns = get_children(block["id"])
 
-            column_blocks = get_children(column["id"])
+            for column in columns:
 
-            for item in column_blocks:
+                column_blocks = get_children(column["id"])
 
-                if item["type"] == "callout":
+                for item in column_blocks:
 
-                    callout = item["callout"]["rich_text"]
+                    if item["type"] == "callout":
 
-                    if callout:
+                        callout = item["callout"]["rich_text"]
+
+                        if not callout:
+                            continue
+
                         name = callout[0]["plain_text"]
-                        written_members.append(name)
+
                         message += f"\n### 🙂 {name}\n"
 
-                    children = get_children(item["id"])
+                        children = get_children(item["id"])
 
-                    for child in children:
+                        has_content = False
 
-                        # KEEP / PROBLEM / TRY 제목
-                        if child["type"] == "paragraph":
+                        for child in children:
 
-                            text = child["paragraph"]["rich_text"]
+                            # KEEP / PROBLEM / TRY 제목
+                            if child["type"] == "paragraph":
 
-                            if not text:
-                                continue
+                                text = child["paragraph"]["rich_text"]
 
-                            content = "".join([t["plain_text"] for t in text])
+                                if not text:
+                                    continue
 
-                            if "KEEP" in content.upper():
-                                message += "\n##### Keep\n"
-
-                            elif "PROBLEM" in content.upper():
-                                message += "\n##### Problem\n"
-
-                            elif "TRY" in content.upper():
-                                message += "\n##### Try\n"
-
-                        # 실제 내용
-                        elif child["type"] == "bulleted_list_item":
-
-                            text = child["bulleted_list_item"]["rich_text"]
-
-                            if text:
                                 content = "".join([t["plain_text"] for t in text])
-                                message += f"- {content}\n"
 
-                    message += "\n\n---\n\n"
+                                if "KEEP" in content.upper():
+                                    message += "\n##### Keep\n"
 
+                                elif "PROBLEM" in content.upper():
+                                    message += "\n##### Problem\n"
 
+                                elif "TRY" in content.upper():
+                                    message += "\n##### Try\n"
 
-# 회고 작성 현황
-written_count = len(written_members)
-total_count = len(TEAM_MEMBERS)
+                            # 실제 내용
+                            elif child["type"] == "bulleted_list_item":
 
-message += f"\n\n### 📊 회고 작성 현황\n"
-message += f"- **작성: {written_count}명**\n"
-message += f"- **미작성: {total_count - written_count}명**\n"
+                                text = child["bulleted_list_item"]["rich_text"]
 
+                                if text:
+                                    content = "".join([t["plain_text"] for t in text]).strip()
 
-# 회고 미작성 체크
-not_written = [m for m in TEAM_MEMBERS if m not in written_members]
+                                    if content != "":
+                                        has_content = True
+                                        message += f"- {content}\n"
 
-if not_written:
-    message += "\n⚠ 미작성자\n"
-    for m in not_written:
-        message += f"- {m}\n"
+                        if has_content:
+                            written_members.append(name)
 
+                        message += "\n\n---\n\n"
 
-# Mattermost 전송
-requests.post(WEBHOOK_URL, json={"text": message})
+    # 회고 작성 현황
+    written_count = len(written_members)
+    total_count = len(TEAM_MEMBERS)
 
+    message += f"\n\n### 📊 회고 작성 현황\n"
+    message += f"- **작성: {written_count}명**\n"
+    message += f"- **미작성: {total_count - written_count}명**\n"
 
-# 알림 체크 해제
-update_url = f"https://api.notion.com/v1/pages/{page_id}"
+    # 미작성자 목록
+    not_written = [m for m in TEAM_MEMBERS if m not in written_members]
 
-update_data = {
-    "properties": {
-        "Mattermost 알림": {
-            "checkbox": False
+    if not_written:
+        message += "\n⚠ 미작성자\n"
+        for m in not_written:
+            message += f"- {m}\n"
+
+    # Mattermost 전송
+    requests.post(WEBHOOK_URL, json={"text": message})
+
+    # 알림 체크 해제
+    update_url = f"https://api.notion.com/v1/pages/{page_id}"
+
+    update_data = {
+        "properties": {
+            "Mattermost 알림": {
+                "checkbox": False
+            }
         }
     }
-}
 
-requests.patch(update_url, headers=headers, json=update_data)
+    requests.patch(update_url, headers=headers, json=update_data)
 
 print("전송 완료")
