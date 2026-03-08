@@ -125,13 +125,13 @@ for page in data["results"]:
                         if has_content:
                             written_members.append(name)
 
-                        message += "\n"
+                        message += f"\n---\n"
+                    
 
     # 회고 작성 현황
     written_count = len(written_members)
     total_count = len(TEAM_MEMBERS)
 
-    message += f"\n---\n"
     message += f"\n### 📊 회고 작성 현황\n"
     message += f"- 작성: {written_count}명\n"
     message += f"- 미작성: {total_count - written_count}명\n"
