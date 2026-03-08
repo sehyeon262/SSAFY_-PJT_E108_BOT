@@ -2,7 +2,7 @@ name: Notion Retro
 
 on:
   schedule:
-    - cron: "* * * * *"
+    - cron: "*/2 * * * *"
   workflow_dispatch:
 
 jobs:
