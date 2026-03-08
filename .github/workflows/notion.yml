@@ -23,3 +23,4 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           DATABASE_ID: ${{ secrets.DATABASE_ID }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+# TEST
