@@ -58,6 +58,7 @@ for page in data["results"]:
 
     for block in blocks:
 
+        # 컬럼 구조
         if block["type"] == "column_list":
 
             columns = get_children(block["id"])
@@ -68,6 +69,7 @@ for page in data["results"]:
 
                 for item in column_blocks:
 
+                    # 사람 카드 (callout)
                     if item["type"] == "callout":
 
                         callout = item["callout"]["rich_text"]
@@ -75,17 +77,18 @@ for page in data["results"]:
                         if not callout:
                             continue
 
-                        name = callout[0]["plain_text"]
+                        name = callout[0]["plain_text"].strip()
 
                         message += f"\n### 🙂 {name}\n"
 
                         children = get_children(item["id"])
 
+                        section = None
                         has_content = False
 
                         for child in children:
 
-                            # KEEP / PROBLEM / TRY 제목
+                            # KEEP / PROBLEM / TRY
                             if child["type"] == "paragraph":
 
                                 text = child["paragraph"]["rich_text"]
@@ -93,18 +96,21 @@ for page in data["results"]:
                                 if not text:
                                     continue
 
-                                content = "".join([t["plain_text"] for t in text])
+                                content = "".join([t["plain_text"] for t in text]).upper()
 
-                                if "KEEP" in content.upper():
-                                    message += "\n##### Keep\n"
+                                if "KEEP" in content:
+                                    section = "Keep"
+                                    message += "\n**Keep**\n"
 
-                                elif "PROBLEM" in content.upper():
-                                    message += "\n##### Problem\n"
+                                elif "PROBLEM" in content:
+                                    section = "Problem"
+                                    message += "\n**Problem**\n"
 
-                                elif "TRY" in content.upper():
-                                    message += "\n##### Try\n"
+                                elif "TRY" in content:
+                                    section = "Try"
+                                    message += "\n**Try**\n"
 
-                            # 실제 내용
+                            # 실제 bullet 내용
                             elif child["type"] == "bulleted_list_item":
 
                                 text = child["bulleted_list_item"]["rich_text"]
@@ -119,17 +125,18 @@ for page in data["results"]:
                         if has_content:
                             written_members.append(name)
 
-                        message += "\n\n---\n\n"
+                        message += "\n"
 
     # 회고 작성 현황
     written_count = len(written_members)
     total_count = len(TEAM_MEMBERS)
 
-    message += f"\n\n### 📊 회고 작성 현황\n"
-    message += f"- **작성: {written_count}명**\n"
-    message += f"- **미작성: {total_count - written_count}명**\n"
+    message += f"\n---\n"
+    message += f"\n### 📊 회고 작성 현황\n"
+    message += f"- 작성: {written_count}명\n"
+    message += f"- 미작성: {total_count - written_count}명\n"
 
-    # 미작성자 목록
+    # 미작성자
     not_written = [m for m in TEAM_MEMBERS if m not in written_members]
 
     if not_written:
